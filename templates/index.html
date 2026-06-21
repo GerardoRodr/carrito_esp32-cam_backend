@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Control Gestual</title>
+    <style>
+        /* Estilos Base - Dark Mode Industrial */
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #888888;
+            --accent: #00bcd4;
+            /* Cyan */
+            --success: #4CAF50;
+            /* Green */
+            --danger: #f44336;
+            /* Red */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            text-shadow: 0 0 10px rgba(0, 188, 212, 0.3);
+        }
+
+        /* Layout Principal */
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+            justify-content: center;
+        }
+
+        /* Panel de Video (Izquierda) */
+        .video-panel {
+            flex: 2;
+            min-width: 320px;
+            background-color: var(--panel-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-top: 4px solid var(--accent);
+        }
+
+        .panel-title {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            width: 100%;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .video-container {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #000;
+            border: 2px solid #333;
+            position: relative;
+        }
+
+        .video-container img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Panel de Estado (Derecha) */
+        .stats-panel {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stat-card {
+            background-color: var(--panel-bg);
+            border-radius: 12px;
+            padding: 25px 20px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            border-left: 4px solid #444;
+            transition: transform 0.2s ease, border-color 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        /* Colores */
+        .card-fps {
+            border-color: var(--success);
+        }
+
+        .card-gesto {
+            border-color: var(--accent);
+        }
+
+        .card-comando {
+            border-color: var(--danger);
+        }
+
+        .val-fps {
+            color: var(--success);
+        }
+
+        .val-gesto {
+            color: var(--accent);
+        }
+
+        .val-comando {
+            color: var(--danger);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Carrito controlado por gestos</h1>
+
+    <div class="dashboard">
+        <!-- Izquierda: Stream de Video -->
+        <div class="video-panel">
+            <div class="panel-title">Transmisión de Cámara ESP32</div>
+            <div class="video-container">
+                <img src="/video_feed" alt="Esperando conexión de video...">
+            </div>
+        </div>
+
+        <!-- Derecha: Métricas en Tiempo Real -->
+        <div class="stats-panel">
+            <div class="stat-card card-fps">
+                <div class="stat-label">Rendimiento (FPS)</div>
+                <div class="stat-value val-fps" id="txt-fps">--</div>
+            </div>
+
+            <div class="stat-card card-gesto">
+                <div class="stat-label">Gesto Detectado</div>
+                <div class="stat-value val-gesto" id="txt-gesto">--</div>
+            </div>
+
+            <div class="stat-card card-comando">
+                <div class="stat-label">Comando al Motor</div>
+                <div class="stat-value val-comando" id="txt-comando">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script sin dependencias para actualizar métricas (AJAX Polling) -->
+    <script>
+        function updateStats() {
+            fetch('/stats')
+                .then(response => {
+                    if (!response.ok) throw new Error("Error HTTP");
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('txt-fps').innerText = data.fps;
+                    document.getElementById('txt-gesto').innerText = data.gesto;
+                    document.getElementById('txt-comando').innerText = data.comando;
+                })
+                .catch(err => {
+                    console.log("Conexión perdida o servidor ocupado:", err);
+                });
+        }
+
+        // Consultar el estado cada 150ms para sensación de tiempo real
+        setInterval(updateStats, 150);
+
+        // Ejecutar inmediatamente al cargar la página
+        updateStats();
+    </script>
+</body>
+
+</html>
