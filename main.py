@@ -10,9 +10,9 @@ from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
 # --- CONFIGURACION ---
-ESP32_IP = "192.168.1.100"  # Cambiar por la IP real de tu ESP32-CAM
+ESP32_IP = "192.168.0.235"  # IP del Carrito asignada por el WiFi
 STREAM_URL = f"http://{ESP32_IP}:81/stream"
-CONTROL_URL = f"http://{ESP32_IP}"
+CONTROL_URL = f"http://{ESP32_IP}:80"
 
 # Variables de control
 comando_actual = "/parar"
@@ -76,7 +76,13 @@ def detectar_gesto(hand_landmarks):
         return "Mano Cerrada", "/parar"
     elif estados[1] == 1 and estados[2] == 0 and estados[3] == 0 and estados[4] == 0:
         return "Indice Arriba", "/atras"
-        
+    """
+    ESTA VAINA VA A DAR MÁS PROBLEMAS CAUSA
+    elif estados[1] == 1 and estados[2] == 1 and estados[3] == 0 and estados[4] == 0:
+        return "Amor y Paz", "/izquierda"
+    elif estados[1] == 0 and estados[2] == 0 and estados[3] == 0 and estados[4] == 1:
+        return "Menique Arriba", "/derecha"
+    """
     return "Desconocido", None
 
 def main():
@@ -87,12 +93,17 @@ def main():
     
     # Configuracion de MediaPipe Tasks API
     base_options = mp_python.BaseOptions(model_asset_path='hand_landmarker.task')
-    options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=1)
+    options = vision.HandLandmarkerOptions(
+    base_options=base_options, 
+    num_hands=1,
+    min_hand_detection_confidence=0.3, # Bajamos el umbral inicial de detección al 30%
+    min_hand_presence_confidence=0.3,  # Bajamos el umbral de seguimiento al 30%
+    min_tracking_confidence=0.3
+    )
     detector = vision.HandLandmarker.create_from_options(options)
     
-    print("Iniciando conexion de video...")
-    # Usando camara local (0) para pruebas
-    cap = cv2.VideoCapture(0)
+    print(f"Iniciando conexion de video al stream: {STREAM_URL}...")
+    cap = cv2.VideoCapture(STREAM_URL)
     
     prev_time = 0
     
@@ -103,7 +114,7 @@ def main():
                 print("No se pudo obtener frame. Reintentando...")
                 time.sleep(1)
                 cap.release()
-                cap = cv2.VideoCapture(0)
+                cap = cv2.VideoCapture(STREAM_URL)
                 continue
                 
             # Invertir el frame horizontalmente (efecto espejo)
