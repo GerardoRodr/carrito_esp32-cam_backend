@@ -49,6 +49,12 @@ def ia_loop():
                 time.sleep(0.01)
                 continue
                 
+            # CRITICO PARA EVITAR LAG Y FALSOS 90 FPS:
+            # Comparamos el ID del frame actual con el ultimo que la IA proceso.
+            # Al correr en un hilo de fondo, Python es mucho mas rapido que el ESP32.
+            # Si el frame_id es igual, significa que la camara no ha enviado una foto nueva aun.
+            # En lugar de volver a analizar la misma foto (gastando 100% CPU de la PC
+            # y bloqueando el servidor web local con FPS altisimos), la ignoramos y esperamos.
             if frame_id == prev_frame_id:
                 time.sleep(0.005)
                 continue

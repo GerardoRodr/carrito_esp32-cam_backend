@@ -27,6 +27,11 @@ class VideoStream:
                     continue
                 self.grabbed = grabbed
                 self.frame = frame
+                
+                # CRITICO PARA EVITAR LAG Y SATURACION DEL CEREBRO:
+                # Se asigna un identificador unico que se incrementa solo cuando 
+                # realmente llego una imagen fresca desde el ESP32.
+                # Esto evita que la IA procese la misma imagen multiples veces.
                 self.frame_id += 1
             except Exception as e:
                 time.sleep(VIDEO_RETRY_DELAY)
