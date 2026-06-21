@@ -40,13 +40,20 @@ def ia_loop():
     
     prev_time = 0
     comando_actual = "/parar"
+    prev_frame_id = -1
     
     while True:
         try:
-            ret, frame = vs.read()
+            ret, frame, frame_id = vs.read()
             if not ret or frame is None:
                 time.sleep(0.01)
                 continue
+                
+            if frame_id == prev_frame_id:
+                time.sleep(0.005)
+                continue
+            
+            prev_frame_id = frame_id
                 
             frame = cv2.flip(frame, 1)
                 

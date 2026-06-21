@@ -8,6 +8,7 @@ class NetworkClient:
         self.cola_comandos = queue.Queue()
         self.ultimo_comando_enviado = ""
         self.stopped = False
+        self.session = requests.Session()
 
     def start(self):
         hilo = threading.Thread(target=self._hilo_peticiones_http, daemon=True)
@@ -27,7 +28,7 @@ class NetworkClient:
                 if comando != self.ultimo_comando_enviado:
                     try:
                         url = f"{CONTROL_URL}{comando}"
-                        requests.get(url, timeout=HTTP_TIMEOUT)
+                        self.session.get(url, timeout=HTTP_TIMEOUT)
                         self.ultimo_comando_enviado = comando
                         print(f"Comando enviado exitosamente: {comando}")
                     except requests.exceptions.RequestException as e:

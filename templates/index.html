@@ -251,9 +251,9 @@
             <button class="btn btn-mode" id="btn-modo-manual" onclick="setModo('manual')">Control Manual</button>
 
             <div class="panel-title" style="margin-top: 20px;">Control de Potencia</div>
-            <input type="range" min="80" max="255" value="150" id="sliderVel" onchange="cambiarVel(this.value)">
+            <input type="range" min="80" max="255" value="100" id="sliderVel" onchange="cambiarVel(this.value)">
             <p style="color: var(--text-muted); margin-bottom: 20px;">Potencia: <span id="txtVel"
-                    style="color: white; font-weight: bold;">150</span> / 255</p>
+                    style="color: white; font-weight: bold;">100</span> / 255</p>
 
             <div class="panel-title">Prueba de Motores</div>
             <div class="pad-direccional" id="pad-motores" style="opacity: 0.5; pointer-events: none;">
@@ -342,17 +342,17 @@
 
             if (modo === 'auto') {
                 btnAuto.className = "btn btn-mode btn-green";
-                btnAuto.innerHTML = "Visión Gestual (IA)";
+                btnAuto.innerHTML = "Visión Gestual";
                 btnManual.className = "btn btn-mode";
-                btnManual.innerHTML = "Control Manual Web";
+                btnManual.innerHTML = "Control Manual";
                 pad.style.opacity = "0.5";
                 pad.style.pointerEvents = "none";
                 aviso.style.display = "block";
             } else {
                 btnAuto.className = "btn btn-mode";
-                btnAuto.innerHTML = "Visión Gestual (IA)";
+                btnAuto.innerHTML = "Visión Gestual";
                 btnManual.className = "btn btn-mode btn-red";
-                btnManual.innerHTML = "Control Manual Web";
+                btnManual.innerHTML = "Control Manual";
                 pad.style.opacity = "1";
                 pad.style.pointerEvents = "auto";
                 aviso.style.display = "none";
@@ -362,12 +362,13 @@
         function fetchDir(endpoint) {
             if (modoActual !== "manual") return;
             // Gracias al CORS configurado en el ESP32, el navegador puede llamarlo directo!
-            fetch(`${ipCarrito}${endpoint}`, { mode: 'no-cors' }).catch(e => console.error(e));
+            // Usamos keepalive: true para reusar el socket TCP y bajar la latencia a ~15ms
+            fetch(`${ipCarrito}${endpoint}`, { mode: 'no-cors', keepalive: true }).catch(e => console.error(e));
         }
 
         function cambiarVel(valor) {
             document.getElementById('txtVel').innerText = valor;
-            fetch(`${ipCarrito}/velocidad?v=${valor}`, { mode: 'no-cors' }).catch(e => console.error(e));
+            fetch(`${ipCarrito}/velocidad?v=${valor}`, { mode: 'no-cors', keepalive: true }).catch(e => console.error(e));
         }
 
         // Consultar el estado cada 150ms para sensación de tiempo real

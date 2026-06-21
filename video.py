@@ -9,6 +9,7 @@ class VideoStream:
         self.src = src
         self.stream = cv2.VideoCapture(src)
         self.grabbed, self.frame = self.stream.read()
+        self.frame_id = 0
         self.stopped = False
 
     def start(self):
@@ -26,6 +27,7 @@ class VideoStream:
                     continue
                 self.grabbed = grabbed
                 self.frame = frame
+                self.frame_id += 1
             except Exception as e:
                 time.sleep(VIDEO_RETRY_DELAY)
                 
@@ -34,7 +36,7 @@ class VideoStream:
             self.stream.release()
 
     def read(self):
-        return self.grabbed, self.frame
+        return self.grabbed, self.frame, self.frame_id
 
     def stop(self):
         self.stopped = True
