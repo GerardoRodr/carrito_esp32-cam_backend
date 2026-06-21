@@ -1,9 +1,17 @@
-from flask import Flask, render_template, Response, jsonify
+from flask import Flask, render_template, Response, jsonify, request
 import cv2
 import threading
 import time
+import logging
 
-from config import STREAM_URL
+# Filtro para ignorar los logs constantes de /stats en la consola
+class NoStatsFilter(logging.Filter):
+    def filter(self, record):
+        return '/stats' not in record.getMessage()
+
+logging.getLogger('werkzeug').addFilter(NoStatsFilter())
+
+from config import STREAM_URL, CONTROL_URL
 from video import VideoStream
 from network import NetworkClient
 from gestures import GestureRecognizer
@@ -14,7 +22,8 @@ app = Flask(__name__)
 estado = {
     "fps": 0,
     "gesto": "Buscando mano...",
-    "comando": "/parar"
+    "comando": "/parar",
+    "modo": "auto"
 }
 frame_actual = None
 lock = threading.Lock()
@@ -62,10 +71,12 @@ def ia_loop():
                     
                     if endpoint:
                         comando_actual = endpoint
-                        network_client.send_command(endpoint)
+                        if estado["modo"] == "auto":
+                            network_client.send_command(endpoint)
             else:
                 comando_actual = "/parar"
-                network_client.send_command("/parar")
+                if estado["modo"] == "auto":
+                    network_client.send_command("/parar")
             
             # En lugar de cv2.imshow, codificamos el frame para enviarlo por HTTP
             ret_encode, buffer = cv2.imencode('.jpg', frame)
@@ -98,7 +109,21 @@ def generar_video():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', url_carrito=CONTROL_URL)
+
+@app.route('/set_mode')
+def set_mode():
+    import requests
+    estado_req = request.args.get('estado', 'auto')
+    with lock:
+        estado["modo"] = estado_req
+        # Si cambiamos a manual, paramos el carro por seguridad
+        if estado_req == "manual":
+            try:
+                requests.get(CONTROL_URL + "/parar", timeout=1.0)
+            except:
+                pass
+    return jsonify({"status": "ok", "modo": estado_req})
 
 @app.route('/video_feed')
 def video_feed():
