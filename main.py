@@ -19,6 +19,40 @@ comando_actual = "/parar"
 ultimo_comando_enviado = ""
 cola_comandos = queue.Queue()
 
+class VideoStream:
+    """Hilo dedicado para consumir frames constantemente y vaciar el buffer interno de OpenCV."""
+    def __init__(self, src):
+        self.src = src
+        self.stream = cv2.VideoCapture(src)
+        self.grabbed, self.frame = self.stream.read()
+        self.stopped = False
+
+    def start(self):
+        threading.Thread(target=self.update, daemon=True).start()
+        return self
+
+    def update(self):
+        while not self.stopped:
+            try:
+                grabbed, frame = self.stream.read()
+                if not grabbed:
+                    time.sleep(1)
+                    self.stream.release()
+                    self.stream = cv2.VideoCapture(self.src)
+                    continue
+                self.grabbed = grabbed
+                self.frame = frame
+            except Exception as e:
+                time.sleep(1)
+
+    def read(self):
+        return self.grabbed, self.frame
+
+    def stop(self):
+        self.stopped = True
+        if self.stream:
+            self.stream.release()
+
 def hilo_peticiones_http():
     """
     Este hilo corre en segundo plano y envia las peticiones HTTP al ESP32.
@@ -103,18 +137,16 @@ def main():
     detector = vision.HandLandmarker.create_from_options(options)
     
     print(f"Iniciando conexion de video al stream: {STREAM_URL}...")
-    cap = cv2.VideoCapture(STREAM_URL)
+    vs = VideoStream(STREAM_URL).start()
     
     prev_time = 0
     
     while True:
         try:
-            ret, frame = cap.read()
-            if not ret:
-                print("No se pudo obtener frame. Reintentando...")
-                time.sleep(1)
-                cap.release()
-                cap = cv2.VideoCapture(STREAM_URL)
+            ret, frame = vs.read()
+            if not ret or frame is None:
+                # Si aun no hay frame, esperamos un poco
+                time.sleep(0.01)
                 continue
                 
             # Invertir el frame horizontalmente (efecto espejo)
@@ -168,7 +200,7 @@ def main():
             print(f"Error en el bucle principal: {e}")
             time.sleep(1)
             
-    cap.release()
+    vs.stop()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
