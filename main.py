@@ -73,7 +73,7 @@ def detectar_gesto(hand_landmarks):
     if dedos_cuatro == 4:
         return "Mano Abierta", "/adelante"
     elif dedos_cuatro == 0:
-        return "Puno Cerrado", "/parar"
+        return "Mano Cerrada", "/parar"
     elif estados[1] == 1 and estados[2] == 0 and estados[3] == 0 and estados[4] == 0:
         return "Indice Arriba", "/atras"
         
@@ -145,9 +145,14 @@ def main():
             
             cv2.imshow("Control Gestual del Vehiculo", frame)
             
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            tecla = cv2.waitKey(1) & 0xFF
+            if tecla == ord('q') or tecla == 27: # 27 es la tecla ESC
+                print("Saliendo...")
                 break
                 
+        except KeyboardInterrupt:
+            print("\nInterrupcion de teclado en terminal xdddd (Ctrl+C)")
+            break
         except Exception as e:
             print(f"Error en el bucle principal: {e}")
             time.sleep(1)
